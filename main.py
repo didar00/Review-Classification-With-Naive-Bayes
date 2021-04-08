@@ -4,6 +4,7 @@ from random import randrange
 import pandas as pd
 from naive_bayes import *
 import re
+import math
 
 stop_words = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're", "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', "aren't", 'couldn', "couldn't", 'didn', "didn't", 'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't", 'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't", 'mustn', "mustn't", 'needn', "needn't", 'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"]
 
@@ -41,7 +42,7 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
     sentence = get_words(test_sentence)
     #print(sentence)
     #print("----------------")
-    cond_prob = 1
+    cond_prob = 0 # ATTTTENNNNTTTIIIIIOOONNNNN??!!!!!
     for word in sentence:
         #print(word)
         if word in BoW.keys():
@@ -49,8 +50,9 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
             #print("count :", BoW[word])
         else:
             count = 0
-        cond_prob *= (count + 1)/(total_word_counts + total_unique_words)
+        cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
+
 
 def get_words(sentence):
     new_sent = re.sub("[^\w\s]", "", sentence.strip())
@@ -72,8 +74,8 @@ def classify_sentence(sentence):
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
-    pos_prob = pos_review_likelihood*pos_prior
-    neg_prob = neg_review_likelihood*neg_prior
+    pos_prob = math.log(pos_review_likelihood) + math.log(pos_prior)
+    neg_prob = math.log(neg_review_likelihood) + math.log(neg_prior)
     #print("positive : ", pos_prob, " negative : ", neg_prob)
     #print()
 
