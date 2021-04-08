@@ -42,7 +42,7 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
     sentence = get_words(test_sentence)
     #print(sentence)
     #print("----------------")
-    cond_prob = 0 # ATTTTENNNNTTTIIIIIOOONNNNN??!!!!!
+    cond_prob = 1
     for word in sentence:
         #print(word)
         if word in BoW.keys():
@@ -52,7 +52,6 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
             count = 0
         cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
-
 
 def get_words(sentence):
     new_sent = re.sub("[^\w\s]", "", sentence.strip())
@@ -74,8 +73,8 @@ def classify_sentence(sentence):
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
-    pos_prob = math.log(pos_review_likelihood) + math.log(pos_prior)
-    neg_prob = math.log(neg_review_likelihood) + math.log(neg_prior)
+    pos_prob = pos_review_likelihood + math.log(pos_prior)
+    neg_prob = neg_review_likelihood + math.log(neg_prior)
     #print("positive : ", pos_prob, " negative : ", neg_prob)
     #print()
 
