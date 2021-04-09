@@ -7,9 +7,11 @@ import re
 import math
 import nltk
 from nltk.corpus import stopwords
+"""
+            WITH BIGRAM  ^+%^+&'&'^/^+%/^/
+"""
 
 stop_words = set(stopwords.words("english"))
-
 
 def read_corpus(file_name):
     file = open(file_name, "r", encoding="utf8")
@@ -41,32 +43,35 @@ def train_test_split(reviews, test_percent):
     return train_test_list
 
 
-def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique_words):
-    sentence = get_words(test_sentence)
+def naive_bayes_with_laplace(test_sentence, BoW, total_bigram_counts, total_unique_bigrams):
+    bigrams = get_bigram_words(test_sentence)
     #print(sentence)
     #print("----------------")
     cond_prob = 0
-    for word in sentence:
-        #print(word)
-        if word in BoW.keys():
-            count = BoW[word]
-            #print("count :", BoW[word])
+    for bigram in bigrams:
+        #print(bigram)
+        bigram = " ".join(bigram)
+        if bigram in BoW.keys():
+            count = BoW[bigram]
+            #print("count :", BoW[bigram])
         else:
             count = 0
-        cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
+        cond_prob += math.log((count + 1)/(total_bigram_counts + total_unique_bigrams))
     return cond_prob
 
-def get_words(sentence):
+def get_bigram_words(sentence):
     new_sent = re.sub("[^a-zA-Z\s]", "", sentence.strip())
-    words = new_sent.split()
-    words = [word for word in words if word not in stop_words]
-    return words
+    bigrams = nltk.bigrams(new_sent.split())
+    clean = [word for word in bigrams if not any(stop in word for stop in stop_words)]
+    #print(bigrams)
+    #print(clean)
+    return clean
 
 
 
 def classify_sentence(sentence):
-    pos_review_likelihood = naive_bayes_with_laplace(sentence, pos_BoW, total_counts_words_pos, total_unique_words)
-    neg_review_likelihood = naive_bayes_with_laplace(sentence, neg_BoW, total_counts_words_neg, total_unique_words)
+    pos_review_likelihood = naive_bayes_with_laplace(sentence, pos_BoW, total_counts_bigrams_pos, total_unique_bigrams)
+    neg_review_likelihood = naive_bayes_with_laplace(sentence, neg_BoW, total_counts_bigrams_neg, total_unique_bigrams)
     #print("pos: ", pos_review_likelihood, "neg ", neg_review_likelihood)
 
 
@@ -120,7 +125,7 @@ def print_review_split(review_split):
 
 
 columns = ["genre", "class", "id", "sentence"]
-reviews = read_corpus("c.txt")
+reviews = read_corpus("corpus2.txt")
 ttl = train_test_split(reviews, 0.2)
 #print_review_split(ttl)
 
@@ -129,12 +134,12 @@ training_data = pd.DataFrame(ttl[0], columns=columns)
 
 pos_sentences = [row["sentence"] for index,row in training_data.iterrows() if row["class"] == "pos"]
 #print(pos_sentences)
-vec_pos = CountVectorizer(stop_words="english")
+vec_pos = CountVectorizer(ngram_range=(2, 2), stop_words="english")
 X_pos = vec_pos.fit_transform(pos_sentences)
 tdm_s = pd.DataFrame(X_pos.toarray(), columns=vec_pos.get_feature_names())
 
 neg_sentences = [row["sentence"] for index, row in training_data.iterrows() if row["class"] == "neg"]
-vec_neg = CountVectorizer(stop_words="english")
+vec_neg = CountVectorizer(ngram_range=(2, 2), stop_words="english")
 X_neg = vec_neg.fit_transform(neg_sentences)
 tdm_s = pd.DataFrame(X_neg.toarray(), columns=vec_neg.get_feature_names())
 
@@ -151,6 +156,7 @@ count_list_pos = X_pos.toarray().sum(axis=0)
 # in that class
 pos_BoW = dict(zip(word_list_pos,count_list_pos)) 
 #print(pos_BoW)
+#print("*************************")
 
 # each unique word in negative reviews
 word_list_neg = vec_neg.get_feature_names() 
@@ -161,28 +167,11 @@ count_list_neg = X_neg.toarray().sum(axis=0)
 # reviews with their relevant frequencies
 # in that class
 neg_BoW = dict(zip(word_list_neg,count_list_neg))
-#print(neg_BoW["appointed"])
+#print(neg_BoW)
 #print(len(neg_BoW))
+
 #top_N_words(pos_BoW, 10)
 #top_N_words(neg_BoW, 10)
-
-
-
-sentences = [row["sentence"] for index,row in training_data.iterrows()]
-
-vec = CountVectorizer(stop_words="english")
-X = vec.fit_transform(sentences)
-
-# number of unique words that is in the reviews
-total_unique_words = len(vec.get_feature_names())
-#print(total_unique_words)
-
-# total number of words that is in the positive reviews
-total_counts_words_pos = count_list_pos.sum(axis=0)
-#print(total_counts_words_pos)
-# total number of words that is in the negative reviews
-total_counts_words_neg = count_list_neg.sum(axis=0)
-#print(total_counts_words_neg)
 
 
 tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
@@ -191,26 +180,24 @@ tfidf_transformer.fit(X_pos)
 df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
  
 # sort ascending 
-df_idf = df_idf.sort_values(by=['idf_weights'])
+df_idf.sort_values(by=['idf_weights'])
+print(df_idf.tail(50))
 
-#print(df_idf.head(50))
-#print(df_idf.tail(50))
+sentences = [row["sentence"] for index,row in training_data.iterrows()]
 
-docs = [sentence[-1] for sentence in ttl[1]]
+vec = CountVectorizer(ngram_range=(2, 2), stop_words="english")
+X = vec.fit_transform(sentences)
 
-count_vector= vec_pos.transform(docs)
-tf_idf_vector=tfidf_transformer.transform(count_vector)
+# number of unique words that is in the reviews
+total_unique_bigrams = len(vec.get_feature_names())
+#print(total_unique_bigrams)
 
-feature_names = vec_pos.get_feature_names() 
- 
-#get tfidf vector for first document 
-first_document_vector=tf_idf_vector[0] 
- 
-#print the scores 
-df = pd.DataFrame(first_document_vector.T.todense(), index=feature_names, columns=["tfidf"])
-df = df.sort_values(by=["tfidf"],ascending=False)
-
-
+# total number of bigrams that is in the positive reviews
+total_counts_bigrams_pos = count_list_pos.sum(axis=0)
+#print(total_counts_bigrams_pos)
+# total number of bigrams that is in the negative reviews
+total_counts_bigrams_neg = count_list_neg.sum(axis=0)
+#print(total_counts_bigrams_neg)
 
 #print(ttl[1])
 predictions = classify(ttl[1])
