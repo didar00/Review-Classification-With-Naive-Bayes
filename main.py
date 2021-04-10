@@ -4,14 +4,18 @@ from random import randrange
 import pandas as pd
 from naive_bayes import *
 import re
+import math
+import nltk
+from nltk.corpus import stopwords
 
-stop_words = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're", "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', "aren't", 'couldn', "couldn't", 'didn', "didn't", 'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't", 'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't", 'mustn', "mustn't", 'needn', "needn't", 'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"]
+stop_words = set(stopwords.words("english"))
+
 
 def read_corpus(file_name):
     file = open(file_name, "r", encoding="utf8")
     rows = []
     for line in file:
-        review = re.sub("[^\w\s]", "", line.strip())
+        review = re.sub("[^a-zA-Z\s]", "", line.strip())
         review = review.split(" ", 3)
         genre = review[0].strip()
         _class = review[1].strip()
@@ -41,7 +45,7 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
     sentence = get_words(test_sentence)
     #print(sentence)
     #print("----------------")
-    cond_prob = 1
+    cond_prob = 0
     for word in sentence:
         #print(word)
         if word in BoW.keys():
@@ -49,11 +53,11 @@ def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique
             #print("count :", BoW[word])
         else:
             count = 0
-        cond_prob *= (count + 1)/(total_word_counts + total_unique_words)
+        cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
 
 def get_words(sentence):
-    new_sent = re.sub("[^\w\s]", "", sentence.strip())
+    new_sent = re.sub("[^a-zA-Z\s]", "", sentence.strip())
     words = new_sent.split()
     words = [word for word in words if word not in stop_words]
     return words
@@ -72,8 +76,8 @@ def classify_sentence(sentence):
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
-    pos_prob = pos_review_likelihood*pos_prior
-    neg_prob = neg_review_likelihood*neg_prior
+    pos_prob = pos_review_likelihood + math.log(pos_prior)
+    neg_prob = neg_review_likelihood + math.log(neg_prior)
     #print("positive : ", pos_prob, " negative : ", neg_prob)
     #print()
 
@@ -116,7 +120,7 @@ def print_review_split(review_split):
 
 
 columns = ["genre", "class", "id", "sentence"]
-reviews = read_corpus("all_sentiment_shuffled.txt")
+reviews = read_corpus("c.txt")
 ttl = train_test_split(reviews, 0.2)
 #print_review_split(ttl)
 
@@ -158,20 +162,11 @@ count_list_neg = X_neg.toarray().sum(axis=0)
 # in that class
 neg_BoW = dict(zip(word_list_neg,count_list_neg))
 #print(neg_BoW["appointed"])
-
+#print(len(neg_BoW))
 #top_N_words(pos_BoW, 10)
 #top_N_words(neg_BoW, 10)
 
 
-tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
-tfidf_transformer.fit(X_pos)
-# print idf values 
-df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
- 
-# sort ascending 
-df_idf.sort_values(by=['idf_weights'])
-
-#print(df_idf.tail(50))
 
 sentences = [row["sentence"] for index,row in training_data.iterrows()]
 
@@ -188,6 +183,34 @@ total_counts_words_pos = count_list_pos.sum(axis=0)
 # total number of words that is in the negative reviews
 total_counts_words_neg = count_list_neg.sum(axis=0)
 #print(total_counts_words_neg)
+
+
+tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
+tfidf_transformer.fit(X_pos)
+# print idf values 
+df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
+ 
+# sort ascending 
+df_idf = df_idf.sort_values(by=['idf_weights'])
+
+#print(df_idf.head(50))
+#print(df_idf.tail(50))
+
+docs = [sentence[-1] for sentence in ttl[1]]
+
+count_vector= vec_pos.transform(docs)
+tf_idf_vector=tfidf_transformer.transform(count_vector)
+
+feature_names = vec_pos.get_feature_names() 
+ 
+#get tfidf vector for first document 
+first_document_vector=tf_idf_vector[0] 
+ 
+#print the scores 
+df = pd.DataFrame(first_document_vector.T.todense(), index=feature_names, columns=["tfidf"])
+df = df.sort_values(by=["tfidf"],ascending=False)
+
+
 
 #print(ttl[1])
 predictions = classify(ttl[1])
