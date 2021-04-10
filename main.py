@@ -2,17 +2,23 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from random import randrange
 import pandas as pd
-from naive_bayes import *
+import re
+import math
+import nltk
+from nltk.corpus import stopwords
+
+stop_words = set(stopwords.words("english"))
 
 
 def read_corpus(file_name):
     file = open(file_name, "r", encoding="utf8")
     rows = []
     for line in file:
-        review = line.strip().split(" ", 3)
-        genre = review[0]
-        _class = review[1]
-        _id = review[2]
+        review = re.sub("[^a-zA-Z\s]", "", line.strip())
+        review = review.split(" ", 3)
+        genre = review[0].strip()
+        _class = review[1].strip()
+        _id = review[2].split("txt")[0]
         sentence = review[3]
         rows.append([genre, _class, _id, sentence])
     file.close()
@@ -35,13 +41,14 @@ def train_test_split(reviews, test_percent):
 
 
 def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique_words):
+    sentence = get_words(test_sentence)
     cond_prob = 1
-    for word in test_sentence:
+    for word in sentence:
         if word in BoW.keys():
             count = BoW[word]
         else:
             count = 0
-        cond_prob *= (count + 1)/(total_word_counts + total_unique_words)
+        cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
 
 
@@ -54,8 +61,8 @@ def classify_sentence(sentence):
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
-    pos_prob = pos_review_likelihood*pos_prior
-    neg_prob = neg_review_likelihood*neg_prior
+    pos_prob = pos_review_likelihood + math.log(pos_prior)
+    neg_prob = neg_review_likelihood + math.log(neg_prior)
 
     return "pos" if pos_prob > neg_prob else "neg"
 
@@ -67,6 +74,11 @@ def classify(test_list):
         predictions.append((prediction, review[1]))
     return predictions
 
+def get_words(sentence):
+    new_sent = re.sub("[^a-zA-Z\s]", "", sentence.strip())
+    words = new_sent.split()
+    words = [word for word in words if word not in stop_words]
+    return words
 
 def accuracy(predictions):
     true_preds = 0
@@ -149,7 +161,7 @@ df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),
 # sort ascending 
 df_idf.sort_values(by=['idf_weights'])
 
-print(df_idf.tail(50))
+#print(df_idf.tail(50))
 
 sentences = [row["sentence"] for index,row in training_data.iterrows()]
 
