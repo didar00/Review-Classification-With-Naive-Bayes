@@ -42,27 +42,43 @@ def train_test_split(reviews, test_percent):
 
 def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique_words):
     sentence = get_words(test_sentence)
-    cond_prob = 1
+    #print(sentence)
+    #print("----------------")
+    cond_prob = 0
     for word in sentence:
+        #print(word)
         if word in BoW.keys():
             count = BoW[word]
+            #print("count :", BoW[word])
         else:
             count = 0
         cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
 
+def get_words(sentence):
+    new_sent = re.sub("[^a-zA-Z\s]", "", sentence.strip())
+    words = new_sent.split()
+    words = [word for word in words if word not in stop_words]
+    return words
+
+
 
 def classify_sentence(sentence):
     pos_review_likelihood = naive_bayes_with_laplace(sentence, pos_BoW, total_counts_words_pos, total_unique_words)
     neg_review_likelihood = naive_bayes_with_laplace(sentence, neg_BoW, total_counts_words_neg, total_unique_words)
+    #print("pos: ", pos_review_likelihood, "neg ", neg_review_likelihood)
 
-    pos_sents = len(pos_sentences)
-    neg_sents = len(neg_sentences)
+
+    pos_sents = len(pos_sentences) ## move this part make it global
+    neg_sents = len(neg_sentences) ## rather than repeating it  '''LATER'''
+    #print("pos: ", pos_sents, " neg: ", neg_sents)
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
     pos_prob = pos_review_likelihood + math.log(pos_prior)
     neg_prob = neg_review_likelihood + math.log(neg_prior)
+    #print("positive : ", pos_prob, " negative : ", neg_prob)
+    #print()
 
     return "pos" if pos_prob > neg_prob else "neg"
 
@@ -70,6 +86,8 @@ def classify_sentence(sentence):
 def classify(test_list):
     predictions = list()
     for review in test_list:
+        #print()
+        #print(review[-1])
         prediction = classify_sentence(review[-1])
         predictions.append((prediction, review[1]))
     return predictions
@@ -106,7 +124,7 @@ def print_review_split(review_split):
 
 
 columns = ["genre", "class", "id", "sentence"]
-reviews = read_corpus("all_sentiment_shuffled.txt")
+reviews = read_corpus("c.txt")
 ttl = train_test_split(reviews, 0.2)
 #print_review_split(ttl)
 
@@ -147,8 +165,8 @@ count_list_neg = X_neg.toarray().sum(axis=0)
 # reviews with their relevant frequencies
 # in that class
 neg_BoW = dict(zip(word_list_neg,count_list_neg))
-#print(neg_BoW)
-
+#print(neg_BoW["appointed"])
+#print(len(neg_BoW))
 #top_N_words(pos_BoW, 10)
 #top_N_words(neg_BoW, 10)
 
@@ -180,5 +198,33 @@ total_counts_words_neg = count_list_neg.sum(axis=0)
 #print(total_counts_words_neg)
 
 
+tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
+tfidf_transformer.fit(X_pos)
+# print idf values 
+df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
+ 
+# sort ascending 
+df_idf = df_idf.sort_values(by=['idf_weights'])
+
+#print(df_idf.head(50))
+#print(df_idf.tail(50))
+
+docs = [sentence[-1] for sentence in ttl[1]]
+
+count_vector= vec_pos.transform(docs)
+tf_idf_vector=tfidf_transformer.transform(count_vector)
+
+feature_names = vec_pos.get_feature_names() 
+ 
+#get tfidf vector for first document 
+first_document_vector=tf_idf_vector[0] 
+ 
+#print the scores 
+df = pd.DataFrame(first_document_vector.T.todense(), index=feature_names, columns=["tfidf"])
+df = df.sort_values(by=["tfidf"],ascending=False)
+
+
+
+#print(ttl[1])
 predictions = classify(ttl[1])
 print(accuracy(predictions))
