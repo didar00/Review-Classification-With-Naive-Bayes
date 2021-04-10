@@ -2,7 +2,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from random import randrange
 import pandas as pd
-from naive_bayes import *
 import re
 import math
 import nltk
