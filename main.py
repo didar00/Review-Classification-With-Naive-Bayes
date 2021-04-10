@@ -1,18 +1,25 @@
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer 
 from random import randrange
 import pandas as pd
-from naive_bayes import *
+import re
+import math
+import nltk
+from nltk.corpus import stopwords
+
+stop_words = set(stopwords.words("english"))
 
 
 def read_corpus(file_name):
     file = open(file_name, "r", encoding="utf8")
     rows = []
     for line in file:
-        review = line.strip().split(" ", 3)
-        genre = review[0]
-        _class = review[1]
-        _id = review[2]
+        review = re.sub("[^a-zA-Z\s]", "", line.strip())
+        review = review.split(" ", 3)
+        genre = review[0].strip()
+        _class = review[1].strip()
+        _id = review[2].split("txt")[0]
         sentence = review[3]
         rows.append([genre, _class, _id, sentence])
     file.close()
@@ -35,27 +42,74 @@ def train_test_split(reviews, test_percent):
 
 
 def naive_bayes_with_laplace(test_sentence, BoW, total_word_counts, total_unique_words):
-    cond_prob = 1
-    for word in test_sentence:
+    sentence = get_words(test_sentence)
+    #print(sentence)
+    #print("----------------")
+    cond_prob = 0
+    for word in sentence:
+        #print(word)
         if word in BoW.keys():
             count = BoW[word]
+            #print("count :", BoW[word])
         else:
             count = 0
-        cond_prob *= (count + 1)/(total_word_counts + total_unique_words)
+        cond_prob += math.log((count + 1)/(total_word_counts + total_unique_words))
     return cond_prob
 
+def get_words(sentence):
+    new_sent = re.sub("[^a-zA-Z\s]", "", sentence.strip())
+    words = new_sent.split()
+    words = [word for word in words if word not in stop_words]
+    return words
+
+""" 
+def get_it(sentence, vec, X):
+    tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
+    tfidf_transformer.fit(X)
+    # print idf values 
+    df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec.get_feature_names(),columns=["idf_weights"]) 
+    
+    # sort ascending 
+    df_idf = df_idf.sort_values(by=['idf_weights'])
+
+    #print(df_idf.head(50))
+    #print(df_idf.tail(50))
+
+    docs = [sentence]
+
+    count_vector= vec.transform(docs)
+    tf_idf_vector=tfidf_transformer.transform(count_vector)
+
+    feature_names = vec.get_feature_names() 
+    
+    #get tfidf vector for first document 
+    first_document_vector=tf_idf_vector[0] 
+    
+    #print the scores 
+    df = pd.DataFrame(first_document_vector.T.todense(), index=feature_names, columns=["tfidf"])
+    df = df.sort_values(by=["tfidf"],ascending=False)
+    return df """
 
 def classify_sentence(sentence):
+    #pos_df = get_it(sentence, vec_pos, X_pos)
+    #neg_df = get_it(sentence, vec_neg, X_neg)
+
+
     pos_review_likelihood = naive_bayes_with_laplace(sentence, pos_BoW, total_counts_words_pos, total_unique_words)
     neg_review_likelihood = naive_bayes_with_laplace(sentence, neg_BoW, total_counts_words_neg, total_unique_words)
+    #print("pos: ", pos_review_likelihood, "neg ", neg_review_likelihood)
 
-    pos_sents = len(pos_sentences)
-    neg_sents = len(neg_sentences)
+
+    pos_sents = len(pos_sentences) ## move this part make it global
+    neg_sents = len(neg_sentences) ## rather than repeating it  '''LATER'''
+    #print("pos: ", pos_sents, " neg: ", neg_sents)
     pos_prior = pos_sents/(pos_sents+neg_sents)
     neg_prior = neg_sents/(pos_sents+neg_sents)
 
-    pos_prob = pos_review_likelihood*pos_prior
-    neg_prob = neg_review_likelihood*neg_prior
+    pos_prob = pos_review_likelihood + math.log(pos_prior)
+    neg_prob = neg_review_likelihood + math.log(neg_prior)
+    #print("positive : ", pos_prob, " negative : ", neg_prob)
+    #print()
 
     return "pos" if pos_prob > neg_prob else "neg"
 
@@ -63,6 +117,8 @@ def classify_sentence(sentence):
 def classify(test_list):
     predictions = list()
     for review in test_list:
+        #print()
+        #print(review[-1])
         prediction = classify_sentence(review[-1])
         predictions.append((prediction, review[1]))
     return predictions
@@ -94,7 +150,7 @@ def print_review_split(review_split):
 
 
 columns = ["genre", "class", "id", "sentence"]
-reviews = read_corpus("all_sentiment_shuffled.txt")
+reviews = read_corpus("c.txt")
 ttl = train_test_split(reviews, 0.2)
 #print_review_split(ttl)
 
@@ -103,53 +159,46 @@ training_data = pd.DataFrame(ttl[0], columns=columns)
 
 pos_sentences = [row["sentence"] for index,row in training_data.iterrows() if row["class"] == "pos"]
 #print(pos_sentences)
-vec_pos = CountVectorizer(stop_words="english")
-X_pos = vec_pos.fit_transform(pos_sentences)
-tdm_s = pd.DataFrame(X_pos.toarray(), columns=vec_pos.get_feature_names())
+tfidf_vec_pos = TfidfVectorizer(use_idf=True, stop_words="english") 
+X_pos = tfidf_vec_pos.fit_transform(pos_sentences)
+tdm_p = pd.DataFrame(X_pos.toarray(), columns=tfidf_vec_pos.get_feature_names())
+
 
 neg_sentences = [row["sentence"] for index, row in training_data.iterrows() if row["class"] == "neg"]
-vec_neg = CountVectorizer(stop_words="english")
-X_neg = vec_neg.fit_transform(neg_sentences)
-tdm_s = pd.DataFrame(X_neg.toarray(), columns=vec_neg.get_feature_names())
+tfidf_vec_neg = TfidfVectorizer(use_idf=True, stop_words="english") 
+X_neg = tfidf_vec_neg.fit_transform(neg_sentences)
+tdm_n = pd.DataFrame(X_neg.toarray(), columns=tfidf_vec_neg.get_feature_names())
+
+
 
 """
 BAG OF WORDS METHOD IMPLEMENTED WITH DICTIONARIES
 """
 # each unique word in positive reviews
-word_list_pos = vec_pos.get_feature_names() 
+word_list_pos = tfidf_vec_pos.get_feature_names() 
 # number of occurences of each word in positive reviews
-count_list_pos = X_pos.toarray().sum(axis=0) 
+tfidf_list_pos = X_pos.toarray().sum(axis=0) 
 # bag of words for positive reviews
 # which contains each word in positive
 # reviews with their relevant frequencies
 # in that class
-pos_BoW = dict(zip(word_list_pos,count_list_pos)) 
+pos_BoW = dict(zip(word_list_pos,tfidf_list_pos)) 
 #print(pos_BoW)
 
 # each unique word in negative reviews
-word_list_neg = vec_neg.get_feature_names() 
+word_list_neg = tfidf_vec_neg.get_feature_names()
 # number of occurences of each word in negative reviews
-count_list_neg = X_neg.toarray().sum(axis=0) 
+tfidf_list_neg = X_neg.toarray().sum(axis=0)
 # bag of words for negative reviews
 # which contains each word in negative
 # reviews with their relevant frequencies
 # in that class
-neg_BoW = dict(zip(word_list_neg,count_list_neg))
+neg_BoW = dict(zip(word_list_neg,tfidf_list_neg))
 #print(neg_BoW)
-
+#print(len(neg_BoW))
 #top_N_words(pos_BoW, 10)
 #top_N_words(neg_BoW, 10)
 
-
-tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
-tfidf_transformer.fit(X_pos)
-# print idf values 
-df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
- 
-# sort ascending 
-df_idf.sort_values(by=['idf_weights'])
-
-print(df_idf.tail(50))
 
 sentences = [row["sentence"] for index,row in training_data.iterrows()]
 
@@ -160,13 +209,19 @@ X = vec.fit_transform(sentences)
 total_unique_words = len(vec.get_feature_names())
 #print(total_unique_words)
 
-# total number of words that is in the positive reviews
-total_counts_words_pos = count_list_pos.sum(axis=0)
-#print(total_counts_words_pos)
-# total number of words that is in the negative reviews
-total_counts_words_neg = count_list_neg.sum(axis=0)
-#print(total_counts_words_neg)
+vec_pos = CountVectorizer(stop_words="english")
+X_pos = vec_pos.fit_transform(pos_sentences)
+count_list_pos = X_pos.toarray().sum(axis=0) 
+total_counts_words_pos = tfidf_list_pos.sum(axis=0)
+
+vec_neg = CountVectorizer(stop_words="english")
+X_neg = vec_neg.fit_transform(neg_sentences)
+count_list_neg = X_neg.toarray().sum(axis=0)
+total_counts_words_neg = tfidf_list_neg.sum(axis=0)
 
 
+
+
+#print(ttl[1])
 predictions = classify(ttl[1])
 print(accuracy(predictions))
