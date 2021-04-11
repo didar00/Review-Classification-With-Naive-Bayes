@@ -1,0 +1,102 @@
+"""
+pos_words = [" ".join(pos_sentences)]
+
+neg_words = [" ".join(neg_sentences)]
+
+
+
+tfidf_vectorizer_neg=TfidfVectorizer(use_idf=True, stop_words="english")
+ 
+# just send in all your docs here 
+fitted_vectorizer_neg=tfidf_vectorizer_neg.fit(sentences)
+tfidf_vectorizer_vectors_neg=fitted_vectorizer_neg.transform(neg_words)
+ 
+# place tf-idf values in a pandas data frame 
+df2 = pd.DataFrame(tfidf_vectorizer_vectors_neg[0].T.todense(), index=tfidf_vectorizer_neg.get_feature_names(), columns=["tfidf"])
+df2 = df2.sort_values(by=["tfidf"],ascending=False)
+print(df2.head(50))
+print(df2.tail(30))
+
+
+
+tfidf_vectorizer=TfidfVectorizer(use_idf=True, stop_words="english")
+ 
+# just send in all your docs here 
+fitted_vectorizer_pos=tfidf_vectorizer.fit(sentences)
+tfidf_vectorizer_vectors_pos=fitted_vectorizer_pos.transform(pos_words)
+ 
+# place tf-idf values in a pandas data frame 
+
+df = pd.DataFrame(tfidf_vectorizer_vectors_pos[0].T.todense(), index=tfidf_vectorizer.get_feature_names(), columns=["tfidf"])
+df = df.sort_values(by=["tfidf"],ascending=False)
+print(df.head(25))
+print(df.tail(30))
+
+"""
+
+
+
+
+
+
+
+
+"""
+tfidf_vectorizer=TfidfVectorizer(use_idf=True)
+tfidf_vectorizer_vectors=tfidf_vectorizer.fit_transform(pos_sentences)
+
+tfidf = tfidf_vectorizer_vectors.todense()
+# TFIDF of words not in the doc will be 0, so replace them with nan
+tfidf[tfidf == 0] = np.nan
+# Use nanmean of numpy which will ignore nan while calculating the mean
+means = np.nanmean(tfidf, axis=0)
+# convert it into a dictionary for later lookup
+means = dict(zip(tfidf_vectorizer.get_feature_names(), means.tolist()[0]))
+
+tfidf = tfidf_vectorizer_vectors.todense()
+# Argsort the full TFIDF dense vector
+ordered = np.argsort(tfidf*-1)
+words = tfidf_vectorizer.get_feature_names()
+
+tt = {}
+top_k = 2
+for i, doc in enumerate(pos_sentences):
+    result = { }
+    # Pick top_k from each argsorted matrix for each doc
+    for t in range(top_k):
+        # Pick the top k word, find its average tfidf from the
+        # precomputed dictionary using nanmean and save it to later use
+        result[words[ordered[i,t]]] = means[words[ordered[i,t]]]
+    for x in result.keys():
+        tt[x] = result[x]
+    #print (result )
+print()
+print()
+print(dict(sorted(tt.items(), key=lambda item: item[1])))
+ """
+
+
+
+
+
+
+ """ tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
+tfidf_transformer.fit(X_pos)
+# print idf values 
+df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
+ 
+# sort ascending 
+df_idf = df_idf.sort_values(by=['idf_weights'], ascending=False)
+
+print(df_idf.head(20))
+
+
+tfidf_transformer_neg=TfidfTransformer(smooth_idf=True,use_idf=True) 
+tfidf_transformer_neg.fit(X_neg)
+# print idf values 
+df_idf2 = pd.DataFrame(tfidf_transformer_neg.idf_, index=vec_neg.get_feature_names(),columns=["idf_weights"]) 
+ 
+# sort ascending 
+df_idf2 = df_idf2.sort_values(by=['idf_weights'], ascending=False)
+
+print(df_idf2.head(20)) """
