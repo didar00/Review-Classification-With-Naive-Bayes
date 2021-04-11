@@ -124,7 +124,7 @@ def print_review_split(review_split):
 
 
 columns = ["genre", "class", "id", "sentence"]
-reviews = read_corpus("corpus2.txt")
+reviews = read_corpus("all_sentiment_shuffled.txt")
 ttl = train_test_split(reviews, 0.2)
 #print_review_split(ttl)
 
@@ -173,15 +173,6 @@ neg_BoW = dict(zip(word_list_neg,count_list_neg))
 #top_N_words(neg_BoW, 10)
 
 
-tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True) 
-tfidf_transformer.fit(X_pos)
-# print idf values 
-df_idf = pd.DataFrame(tfidf_transformer.idf_, index=vec_pos.get_feature_names(),columns=["idf_weights"]) 
- 
-# sort ascending 
-df_idf.sort_values(by=['idf_weights'])
-print(df_idf.tail(50))
-
 sentences = [row["sentence"] for index,row in training_data.iterrows()]
 
 vec = CountVectorizer(ngram_range=(2, 2), stop_words="english")
@@ -197,6 +188,9 @@ total_counts_bigrams_pos = count_list_pos.sum(axis=0)
 # total number of bigrams that is in the negative reviews
 total_counts_bigrams_neg = count_list_neg.sum(axis=0)
 #print(total_counts_bigrams_neg)
+
+
+
 
 #print(ttl[1])
 predictions = classify(ttl[1])
