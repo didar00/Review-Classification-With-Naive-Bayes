@@ -4,7 +4,7 @@
 
 With the help of the assumption that the words in a sentence can be taken into consideration independently, Naive Bayes classifier is convenient for text classification. All we need to do is calculate mutually independent probabilities of each word in the sentence and compare them without the need of normalization.
 
-![naive_formula.png](attachment:naive_formula.png)
+![naive_formula.png](images/naive_formula.png)
 
 To achieve this goal, probabilities of two classes (positive and negative in this assignment) must be calculated for each sentences.
 
@@ -24,7 +24,7 @@ Stop words, both was included and excluded to understand the effect of it.
 
 In order to calculate the probability of a given word in a sentence, given a class, probability of the word must be known. This can be calculated from the frequency of the word in that given class. To ease that process, since it may be used for hundreds of words, **bag of words** method was used. In **BoW**, every word in the corpus is stored along with the frequency information. However, in case of absence of a word in the BoW ( zero frequency), the total probability becomes zero whatever the other probabilities are. Therefore, **laplace smoothing** was used to avoid zero probability.
 
-![laplace.png](attachment:laplace.png)
+![laplace.png](images/laplace.png)
 
 ### Unigram
 
@@ -52,7 +52,7 @@ Algorithm has been trained with the **%80** of the data and has been tested with
 The accuracy of the model is **%81.9**.
 To visualize the accuracy of the algorithm, **confusion matrix** can be seen below.
 
-![confusion.png](attachment:confusion.png)
+![confusion.png](images/confusion.png)
 
 ## Error Analysis
 
@@ -63,11 +63,11 @@ Number of false positives is 236, and number of false negatives is 254. That giv
 Not every word has the same importance when it comes to giving a direction to the classifier to classify the text. Some words reveal much more information about the class of the text. For example, word "excellent" is more helpful than "bookshop" in terms of understanding the emotion of the text. Therefore has more importance.
 In order to find these words, **term frequency-inverse document frequency** can be used. In the light of this, each term has a frequency which is expressed as the number of times each term occurs in each document. On the other side, inverse document frequency gives the information of how common or rare a word is in the entire corpus. Multiplication of these terms results in the **TF-IDF** score of a word in a document. 
 
-![tf_formula.png](attachment:tf_formula.png)
+![tf_formula.png](images/tf_formula.png)
 
-![idf_formula.png](attachment:idf_formula.png)
+![idf_formula.png](images/idf_formula.png)
 
-![tf_idf.png](attachment:tf_idf.png)
+![tf_idf.png](images/tf_idf.png)
 
 
 
