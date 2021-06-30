@@ -12,7 +12,7 @@ To achieve this goal, probabilities of two classes (positive and negative in thi
 
 Before getting into the classification algorithm, input must be cleaned and prepared to avoid the unnecessery calculations and to satisfy the required result.
 
-*camera pos 69.txt i recently purchased this for use with my 550ex . if you use alot of flash for event photography , you will want this in your kit . it is expensive , but i think it is worth every penny . it will keep you from changing aas in your strobe and it quickens the recycle times to nearly instant . you can shoot bursts and still get the proper flash exposure . you can attach a strap to sling it over your shoulder or slip it on your belt . mounting on my 20d was just not comfortable . it gets in the way of the hand-grip *
+*camera pos 69.txt i recently purchased this for use with my 550ex . if you use alot of flash for event photography , you will want this in your kit . it is expensive , but i think it is worth every penny . it will keep you from changing aas in your strobe and it quickens the recycle times to nearly instant . you can shoot bursts and still get the proper flash exposure . you can attach a strap to sling it over your shoulder or slip it on your belt . mounting on my 20d was just not comfortable . it gets in the way of the hand-grip*
 
 For each review **(one raw review input can be seen above)**, punctuations and numerical values were removed throughout the program. Each input review was stored under a dataframe which consists of 4 columns: category, review class, identifier (which was stored as plain numbers: 345 i.e.) and the review itself.
 Stop words, both was included and excluded to understand the effect of it.
